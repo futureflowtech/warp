@@ -37,13 +37,18 @@ impl Channel {
     /// Whether this channel honors the `--server-root-url` / `--ws-server-url` /
     /// `--session-sharing-server-url` flags (and their `WARP_*` env-var equivalents).
     ///
-    /// Release channels (`Stable`, `Preview`, `Oss`) ignore these overrides so shipped
+    /// Release channels (`Stable`, `Preview`) ignore these overrides so shipped
     /// builds can't be redirected away from their baked-in server URLs. Internal-only channels
     /// (`Dev`, `Local`, `Integration`) continue to honor them for local development and testing.
+    /// `Oss` also honors them: unlike `Stable`/`Preview` it isn't a channel we ship to end
+    /// users with expectations of talking to warp.dev, and `Local`/`Dev` require the internal
+    /// `warp-channel-config` generator that isn't available outside Warp's own infra — `Oss`
+    /// is the only channel buildable from this fork without it, so it needs to be redirectable
+    /// too for local development against a non-Warp backend.
     pub fn allows_server_url_overrides(&self) -> bool {
         match self {
-            Channel::Dev | Channel::Local | Channel::Integration => true,
-            Channel::Stable | Channel::Preview | Channel::Oss => false,
+            Channel::Dev | Channel::Local | Channel::Integration | Channel::Oss => true,
+            Channel::Stable | Channel::Preview => false,
         }
     }
 

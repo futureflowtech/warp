@@ -678,11 +678,16 @@ impl LLMPreferences {
             me.rebuild_custom_model_routers(ctx);
         }
 
-        // In agent mode eval builds, eagerly kick off a fetch of the model list from the server
-        // so that it's available by the time test steps like `set_preferred_agent_mode_llm` run.
-        // In production, this is handled reactively (on auth complete, network online, etc.)
-        // to avoid duplicate requests at startup.
-        #[cfg(feature = "agent_mode_evals")]
+        // Eagerly kick off a fetch of the model list from the server on every startup,
+        // rather than relying solely on the reactive triggers above (AuthComplete,
+        // network status flip, team change). AuthComplete in particular only fires from
+        // AuthManager's normal interactive login flow — any setup that seeds AuthState's
+        // credentials another way (e.g. a pre-authenticated dev/test build) never emits
+        // it, so models_by_feature would otherwise stay stuck at whatever was cached (or
+        // the hardcoded default) until one of the other reactive triggers happened to
+        // fire. refresh_available_models() itself is a no-op until is_logged_in() is
+        // true, so this is harmless pre-login (falls through to the public/free model
+        // list instead).
         me.refresh_available_models(ctx);
 
         me
